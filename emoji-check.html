@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emoji 字体替换验证</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --card:#ffffff; --line:#e3e2dd; --text:#23231f;
+    --muted:#6b6a63; --ok:#1d7a4f; --okbg:#e6f4ec; --bad:#b03434; --badbg:#fbeaea;
+    --warn:#8a5a12; --warnbg:#fdf3e2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:var(--bg);color:var(--text);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.6}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:19px;font-weight:600;margin:0 0 6px}
+  .sub{color:var(--muted);margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  h2{font-size:14px;font-weight:600;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-weight:600;color:var(--muted);font-size:12.5px}
+  tr:last-child td{border-bottom:none}
+  .glyph{font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;font-size:30px;line-height:1}
+  .ver{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--muted)}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+  .b-ok{color:var(--ok);background:var(--okbg)}
+  .b-color{color:#0b5cab;background:#e7f1fc}
+  .b-bad{color:var(--bad);background:var(--badbg)}
+  .b-warn{color:var(--warn);background:var(--warnbg)}
+  .b-wait{color:var(--muted);background:#eeede9}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;font-size:13px;padding:7px 15px;border-radius:8px;border:1px solid var(--line);
+         background:#fff;cursor:pointer}
+  button:hover{background:#f2f1ed}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  code{font-family:ui-monospace,Consolas,monospace;background:#f0efeb;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  ol{margin:8px 0 0;padding-left:22px}
+  li{margin-bottom:5px}
+  .note{color:var(--muted);font-size:12.5px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Emoji 字体替换验证</h1>
+  <div class="sub">本页用浏览器渲染当前系统 emoji 字体。它只能反映浏览器（Chromium/Skia）这条渲染路径，记事本、Word 等程序请按页面底部步骤单独确认。</div>
+
+  <div class="card">
+    <h2>自动检测结果</h2>
+    <div class="row" style="margin-bottom:12px">
+      <button id="btn">重新检测</button>
+      <span id="summary" class="badge b-wait">检测中…</span>
+    </div>
+    <table>
+      <thead><tr><th style="width:70px">Emoji</th><th style="width:90px">版本</th><th style="width:100px">码位</th><th style="width:190px">渲染状态</th><th>名称</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="legend">
+      <span><span class="badge b-color">彩色</span> 彩色图层正常</span>
+      <span><span class="badge b-warn">单色</span> 有轮廓但未上色</span>
+      <span><span class="badge b-bad">空框</span> 字形缺失</span>
+    </div>
+    <div class="note">判定方式：把字符画到 canvas 上逐像素分析。若彩色像素占比 &gt; 12% 判为彩色，有墨迹但无色彩判为单色，几乎没有墨迹判为空框。</div>
+  </div>
+
+  <div class="card">
+    <h2>怎么算成功</h2>
+    <ol>
+      <li>打开<strong>记事本</strong>，按 <code>Win + .</code> 打开表情面板或用输入法输入 emoji，观察是否彩色。</li>
+      <li>在 <strong>Word / WordPad</strong> 里粘贴上表的字符，同样看颜色。</li>
+      <li>全部彩色 → 替换成功。出现单色轮廓 → 字体已生效但颜色层没被系统渲染器接受，直接执行回滚脚本即可恢复。</li>
+      <li>无论结果如何，本页与 <code>Set-EmojiFont.ps1 -Phase Verify</code> 都可以随时复查当前生效的字体版本。</li>
+    </ol>
+    <div class="note">提示：表情面板（Win + .）的候选列表不会随字体更新，新表情可以直接粘贴使用，但面板里搜不到——这是 Windows 10 的既有行为。</div>
+  </div>
+</div>
+<script>
+const ITEMS = [
+  [0x1F600, 'E1.0', 'grinning face'],
+  [0x1F970, 'E12.0', 'smiling face with hearts'],
+  [0x1F9CB, 'E13.0', 'bubble tea'],
+  [0x1FAC0, 'E13.0', 'anatomical heart'],
+  [0x1FAE0, 'E14.0', 'melting face'],
+  [0x1FAF6, 'E14.0', 'heart hands'],
+  [0x1FA77, 'E15.0', 'pink heart'],
+  [0x1FABF, 'E15.0', 'goose'],
+  [0x1FAE8, 'E15.0', 'shaking face'],
+  [0x1FA89, 'E16.0', 'harp'],
+  [0x1FAE9, 'E16.0', 'face with bags under eyes'],
+  [0x1FADC, 'E16.0', 'root vegetable'],
+  [0x1FAC6, 'E17.0', 'fingerprint'],
+  [0x1FADF, 'E17.0', 'splatter'],
+  [0x1FA8F, 'E17.0', 'shovel']
+];
+const NAMES = ['空框', '单色', '彩色'];
+const CLS = ['b-bad', 'b-warn', 'b-color'];
+
+function analyze(ch) {
+  const S = 96, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.clearRect(0, 0, S, S);
+  ctx.font = '64px "Segoe UI Emoji","Segoe UI Symbol",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000';
+  ctx.fillText(ch, S / 2, S / 2 + 2);
+  const d = ctx.getImageData(0, 0, S, S).data;
+  let inked = 0, colored = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 24) continue;
+    inked++;
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    if (Math.max(r, g, b) - Math.min(r, g, b) > 20) colored++;
+  }
+  if (inked < S * S * 0.004) return 0;
+  return (colored / inked) > 0.12 ? 2 : 1;
+}
+
+function run() {
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = '';
+  let color = 0, mono = 0, missing = 0;
+  for (const [cp, ver, name] of ITEMS) {
+    const ch = String.fromCodePoint(cp);
+    const st = analyze(ch);
+    if (st === 2) color++; else if (st === 1) mono++; else missing++;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="glyph">' + ch + '</td>' +
+      '<td class="ver">' + ver + '</td>' +
+      '<td class="ver">U+' + cp.toString(16).toUpperCase() + '</td>' +
+      '<td><span class="badge ' + CLS[st] + '">' + NAMES[st] + '</span></td>' +
+      '<td style="color:#6b6a63;font-size:12.5px">' + name + '</td>';
+    tb.appendChild(tr);
+  }
+  const s = document.getElementById('summary');
+  if (color === ITEMS.length) {
+    s.className = 'badge b-ok'; s.textContent = '全部 ' + color + '/' + ITEMS.length + ' 彩色渲染';
+  } else if (color > ITEMS.length * 0.6) {
+    s.className = 'badge b-warn';
+    s.textContent = '部分成功：彩色 ' + color + '，单色 ' + mono + '，空框 ' + missing;
+  } else {
+    s.className = 'badge b-bad';
+    s.textContent = '未生效：彩色 ' + color + '，单色 ' + mono + '，空框 ' + missing;
+  }
+}
+document.getElementById('btn').addEventListener('click', run);
+window.addEventListener('load', run);
+</script>
+</body>
+</html>

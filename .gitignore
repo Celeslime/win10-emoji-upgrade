@@ -1,0 +1,17 @@
+# 不打包任何字体二进制
+*.ttf
+*.otf
+*.ttc
+
+# 备份与日志（不应出现在仓库里）
+EmojiFontBackup/
+*.log
+fonts-registry.xml
+backup-info.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Unicode 测试数据（体积大，用 tools/emoji_coverage.py 自动下载或自行提供）
+emoji-test.txt
